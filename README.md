@@ -5,7 +5,7 @@
 
 A Python desktop application implementing multiple data structures to manage a library system efficiently.
 
-## 🚀 Features
+## Features
 
 - Book management (add, search, update, delete)
 - Checkout system with waitlist
@@ -170,10 +170,6 @@ git checkout -b regNo_<YourRegNo>_<ModuleName>
 
 For detailed documentation on each data structure and their implementations, see:
 - [Data Structures Documentation](docs/data_structures.md)
-- [API Documentation](docs/api.md)
 - [User Guide](docs/user_guide.md)
 
-## 🔐 License
-
-This project is part of the Data Structures and Algorithms course at Strathmore University.
 
