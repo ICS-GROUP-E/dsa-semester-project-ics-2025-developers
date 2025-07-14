@@ -1,31 +1,63 @@
-import pytest
+import unittest
 from src.data_struct.Bsearch import BinarySearchTree
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-@pytest.fixture
-def bst_populated():
-    bst = BinarySearchTree()
-    for key, value in [(8, 'x'), (3, 'y'), (10, 'z')]:
-        bst.insert(key, value)
-    return bst
+class TestBinarySearchTree(unittest.TestCase):
+    def setUp(self):
+        self.bst = BinarySearchTree()
+        # Sample data for testing
+        self.test_data = [
+            (5, "Book 5"),
+            (3, "Book 3"),
+            (7, "Book 7"),
+            (2, "Book 2"),
+            (4, "Book 4"),
+            (6, "Book 6"),
+            (8, "Book 8"),
+        ]
+        
+    def test_insert_and_search(self):
+        # Test inserting and searching single item
+        self.bst.insert(1, "Test Book")
+        self.assertEqual(self.bst.search(1), "Test Book")
+        
+        # Test inserting and searching multiple items
+        for key, data in self.test_data:
+            self.bst.insert(key, data)
+        
+        for key, data in self.test_data:
+            self.assertEqual(self.bst.search(key), data)
+            
+    def test_search_nonexistent(self):
+        # Test searching for non-existent key
+        self.assertIsNone(self.bst.search(100))
+        
+    def test_delete(self):
+        # Insert test data
+        for key, data in self.test_data:
+            self.bst.insert(key, data)
+            
+        # Test deleting leaf node
+        self.bst.delete(2)
+        self.assertIsNone(self.bst.search(2))
+        
+        # Test deleting node with one child
+        self.bst.delete(7)
+        self.assertIsNone(self.bst.search(7))
+        
+        # Test deleting node with two children
+        self.bst.delete(3)
+        self.assertIsNone(self.bst.search(3))
+        
+    def test_inorder_traversal(self):
+        # Insert test data
+        for key, data in self.test_data:
+            self.bst.insert(key, data)
+            
+        # Test inorder traversal
+        inorder_result = list(self.bst.inorder())
+        expected_keys = sorted([key for key, _ in self.test_data])
+        actual_keys = [key for key, _ in inorder_result]
+        self.assertEqual(actual_keys, expected_keys)
 
-def test_search_existing(bst_populated):
-    assert bst_populated.search(10) == 'z'
-    assert bst_populated.search(3) == 'y'
-    assert bst_populated.search(99) is None
-
-def test_delete_leaf(bst_populated):
-    bst_populated.delete(3)
-    keys = [k for k, _ in bst_populated.inorder()]
-    assert keys == [8, 10]
-
-def test_delete_two_children():
-    bst = BinarySearchTree()
-    for k in [5, 2, 8, 1, 3]:
-        bst.insert(k, str(k))
-    bst.delete(2)  # 2 has children 1 and 3
-    assert bst.search(2) is None
-    keys = [k for k, _ in bst.inorder()]
-    assert keys == [1, 3, 5, 8]
+if __name__ == '__main__':
+    unittest.main()

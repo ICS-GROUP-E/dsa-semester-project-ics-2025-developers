@@ -4,8 +4,10 @@ from src.data_struct.Bsearch import BinarySearchTree
 from src.data_struct.BookDictionary import BookDictionary
 from src.data_struct.linkedList import BookLinkedList
 from src.data_struct.queue import LibrarySystem
+from src.data_struct.Stacks import ActivityStack
 from src.database.sqlite import SQLiteService
 from datetime import datetime
+import sqlite3
 
 
 class IntegratedLibraryGUI(tk.Tk):
@@ -19,6 +21,7 @@ class IntegratedLibraryGUI(tk.Tk):
         self.book_dict = BookDictionary()
         self.linked_list = BookLinkedList()
         self.queue_system = LibrarySystem()
+        self.activity_stack = ActivityStack()  # Initialize the stack
         self.storage = self._init_database()
 
         # Create main interface
@@ -198,34 +201,38 @@ class IntegratedLibraryGUI(tk.Tk):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="🔧 Data Structures")
 
+        # Create visualization canvas
+        canvas_frame = ttk.LabelFrame(frame, text="Data Structure Visualization", padding=10)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        self.viz_canvas = tk.Canvas(canvas_frame, width=600, height=300, bg='white')
+        self.viz_canvas.pack(fill=tk.BOTH, expand=True)
+        
+        # Control panel for visualization
+        control_frame = ttk.Frame(canvas_frame)
+        control_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(control_frame, text="Visualize:").pack(side=tk.LEFT, padx=5)
+        self.viz_type = ttk.Combobox(control_frame, values=["BST", "Stack", "Queue", "Linked List"])
+        self.viz_type.pack(side=tk.LEFT, padx=5)
+        self.viz_type.set("BST")
+        self.viz_type.bind('<<ComboboxSelected>>', self.update_visualization)
+        
+        ttk.Button(control_frame, text="Refresh", command=self.update_visualization).pack(side=tk.LEFT, padx=5)
+        
         # Statistics frame
         stats_frame = ttk.LabelFrame(frame, text="Collection Statistics", padding=10)
         stats_frame.pack(fill=tk.X, padx=10, pady=5)
-
+        
         self.stats_text = tk.Text(stats_frame, height=8, wrap=tk.WORD)
         self.stats_text.pack(fill=tk.BOTH, expand=True)
-
-        # Control buttons
-        control_frame = ttk.Frame(stats_frame)
-        control_frame.pack(fill=tk.X, pady=5)
-
-        ttk.Button(control_frame, text="Refresh Statistics", command=self.refresh_statistics).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Show BST Traversal", command=self.show_bst_traversal).pack(side=tk.LEFT, padx=5)
-        ttk.Button(control_frame, text="Show Linked List", command=self.show_linked_list).pack(side=tk.LEFT, padx=5)
-
+        
         # Activity log
         log_frame = ttk.LabelFrame(frame, text="Activity Log", padding=10)
         log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-
+        
         self.log_text = scrolledtext.ScrolledText(log_frame, height=15, wrap=tk.WORD)
         self.log_text.pack(fill=tk.BOTH, expand=True)
-
-        # Log controls
-        log_controls = ttk.Frame(log_frame)
-        log_controls.pack(fill=tk.X, pady=5)
-
-        ttk.Button(log_controls, text="Clear Log", command=self.clear_log).pack(side=tk.LEFT, padx=5)
-        ttk.Button(log_controls, text="Save Log", command=self.save_log).pack(side=tk.LEFT, padx=5)
 
     # Event handlers
     def on_book_select(self, event):
@@ -249,36 +256,40 @@ class IntegratedLibraryGUI(tk.Tk):
         self.user_var.set("")
 
     def add_book(self):
-        """Add book to all data structures"""
+        """Add a new book"""
         isbn = self.isbn_var.get().strip()
         title = self.title_var.get().strip()
         author = self.author_var.get().strip()
-
+        
         if not all([isbn, title, author]):
-            messagebox.showerror("Error", "Please fill in all fields")
+            messagebox.showerror("Error", "All fields are required!")
             return
-
+        
         try:
-            # Add to database
-            cursor = self.storage.conn.cursor()
-            cursor.execute("INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)",
-                           (isbn, title, author))
+            # Add to database and data structures
+            self.storage.conn.execute(
+                "INSERT INTO books (isbn, title, author) VALUES (?, ?, ?)",
+                (isbn, title, author)
+            )
             self.storage.conn.commit()
-            book_id = cursor.lastrowid
-
-            # Add to all data structures
-            self.bst.insert(book_id, (title, author, isbn))
+            
+            # Update all data structures
+            self.bst.insert(isbn, {"title": title, "author": author})
             self.book_dict.add_book(isbn, title, author)
             self.linked_list.add_book(title, author, isbn)
-            self.queue_system.add_book(str(book_id), title, 1)
-
-            self._log(f"Added book: {title} by {author} (ISBN: {isbn})")
+            
+            self._log(f"Added book: {title} (ISBN: {isbn})")
             self.refresh_books_display()
             self.clear_fields()
-            self.status_var.set("Book added successfully")
-
+            
+            # Update visualization if BST is selected
+            if self.viz_type.get() == "BST":
+                self.update_visualization()
+            
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Error", "ISBN already exists!")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to add book: {str(e)}")
+            messagebox.showerror("Error", str(e))
 
     def update_book(self):
         """Update selected book"""
@@ -316,30 +327,32 @@ class IntegratedLibraryGUI(tk.Tk):
         """Delete selected book"""
         selection = self.books_tree.selection()
         if not selection:
-            messagebox.showwarning("Warning", "Please select a book to delete")
+            messagebox.showwarning("Warning", "Please select a book to delete!")
             return
-
-        item = self.books_tree.item(selection[0])
-        isbn = item['values'][0]
-        title = item['values'][1]
-
-        if messagebox.askyesno("Confirm", f"Delete book '{title}'?"):
+        
+        if messagebox.askyesno("Confirm", "Are you sure you want to delete this book?"):
+            item = self.books_tree.item(selection[0])
+            isbn = item['values'][0]
+            
             try:
                 # Delete from database
-                cursor = self.storage.conn.cursor()
-                cursor.execute("DELETE FROM books WHERE isbn=?", (isbn,))
+                self.storage.conn.execute("DELETE FROM books WHERE isbn = ?", (isbn,))
                 self.storage.conn.commit()
-
-                # Reload data structures
-                self._reload_data_structures()
-
-                self._log(f"Deleted book: {title} (ISBN: {isbn})")
+                
+                # Delete from data structures
+                self.bst.delete(isbn)
+                self.book_dict.delete_book(isbn)
+                self.linked_list.delete_book(isbn)
+                
+                self._log(f"Deleted book: {item['values'][1]} (ISBN: {isbn})")
                 self.refresh_books_display()
                 self.clear_fields()
-                self.status_var.set("Book deleted successfully")
-
+                
+                # Update visualization based on current view
+                self.update_visualization()
+                
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to delete book: {str(e)}")
+                messagebox.showerror("Error", str(e))
 
     def bst_search(self):
         """Search using BST"""
@@ -418,54 +431,52 @@ class IntegratedLibraryGUI(tk.Tk):
             self.search_results.insert(tk.END, "Linked list search only supports Title searches.\n")
 
     def checkout_book(self):
-        """Checkout book using queue system"""
+        """Checkout a book"""
         book_id = self.checkout_book_var.get().strip()
         user_id = self.user_var.get().strip()
-
+        
         if not all([book_id, user_id]):
-            messagebox.showerror("Error", "Please enter both Book ID and User ID")
+            messagebox.showerror("Error", "Book ID and User ID are required!")
             return
-
+        
         try:
-            # Update database
-            cursor = self.storage.conn.cursor()
-            cursor.execute("UPDATE books SET status='Checked Out' WHERE id=?", (book_id,))
-            self.storage.conn.commit()
-
-            # Use queue system
-            self.queue_system.check_out_book(user_id, book_id)
-
-            self._log(f"Book {book_id} checked out to {user_id}")
-            self.refresh_books_display()
+            result = self.queue_system.check_out_book(user_id, book_id)
+            if result:
+                self._log(f"Book {book_id} checked out to {user_id}")
+            else:
+                self._log(f"Book {book_id} not available - {user_id} added to queue")
+                
             self.clear_fields()
-
+            self.view_queue_status()
+            
+            # Update visualization if Queue is selected
+            if self.viz_type.get() == "Queue":
+                self.update_visualization()
+                
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to checkout book: {str(e)}")
+            messagebox.showerror("Error", str(e))
 
     def return_book(self):
-        """Return book using queue system"""
+        """Return a book"""
         book_id = self.checkout_book_var.get().strip()
         user_id = self.user_var.get().strip()
-
+        
         if not all([book_id, user_id]):
-            messagebox.showerror("Error", "Please enter both Book ID and User ID")
+            messagebox.showerror("Error", "Book ID and User ID are required!")
             return
-
+        
         try:
-            # Update database
-            cursor = self.storage.conn.cursor()
-            cursor.execute("UPDATE books SET status='Available' WHERE id=?", (book_id,))
-            self.storage.conn.commit()
-
-            # Use queue system
             self.queue_system.return_book(book_id, user_id)
-
             self._log(f"Book {book_id} returned by {user_id}")
-            self.refresh_books_display()
             self.clear_fields()
-
+            self.view_queue_status()
+            
+            # Update visualization if Queue is selected
+            if self.viz_type.get() == "Queue":
+                self.update_visualization()
+                
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to return book: {str(e)}")
+            messagebox.showerror("Error", str(e))
 
     def view_queue_status(self):
         """Display queue status"""
@@ -572,7 +583,7 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
             for book_id, isbn, title, author, status in books:
                 # Add to data structures
-                self.bst.insert(book_id, (title, author, isbn))
+                self.bst.insert(isbn, (title, author, isbn))
                 self.book_dict.add_book(isbn, title, author)
                 self.linked_list.add_book(title, author, isbn)
                 self.queue_system.add_book(str(book_id), title, 1)
@@ -594,6 +605,117 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 
         # Reload from database
         self._load_existing_data()
+
+    def update_visualization(self, event=None):
+        """Update the visualization based on selected data structure"""
+        self.viz_canvas.delete("all")
+        viz_type = self.viz_type.get()
+        
+        if viz_type == "BST":
+            self._visualize_bst()
+        elif viz_type == "Stack":
+            self._visualize_stack()
+        elif viz_type == "Queue":
+            self._visualize_queue()
+        elif viz_type == "Linked List":
+            self._visualize_linked_list()
+
+    def _visualize_bst(self):
+        """Visualize Binary Search Tree"""
+        def draw_node(node, x, y, dx):
+            if not node:
+                return
+            # Draw node
+            self.viz_canvas.create_oval(x-20, y-20, x+20, y+20, fill='lightblue')
+            self.viz_canvas.create_text(x, y, text=str(node.key))
+            
+            # Draw left child
+            if node.left:
+                new_x = x - dx
+                new_y = y + 60
+                self.viz_canvas.create_line(x, y+20, new_x, new_y-20)
+                draw_node(node.left, new_x, new_y, dx/2)
+                
+            # Draw right child
+            if node.right:
+                new_x = x + dx
+                new_y = y + 60
+                self.viz_canvas.create_line(x, y+20, new_x, new_y-20)
+                draw_node(node.right, new_x, new_y, dx/2)
+        
+        # Start drawing from root
+        if self.bst.root:
+            draw_node(self.bst.root, 300, 50, 150)
+        else:
+            self.viz_canvas.create_text(300, 150, text="Empty BST")
+
+    def _visualize_stack(self):
+        """Visualize Stack"""
+        y = 250  # Start from bottom
+        current = self.activity_stack.top
+        count = 0
+        
+        while current and count < 6:  # Show top 6 items
+            # Draw box
+            self.viz_canvas.create_rectangle(200, y-30, 400, y, fill='lightgreen')
+            # Draw text
+            self.viz_canvas.create_text(300, y-15, text=f"{current.action}: {current.details[:20]}...")
+            y -= 40
+            current = current.next
+            count += 1
+        
+        if not self.activity_stack.top:
+            self.viz_canvas.create_text(300, 150, text="Empty Stack")
+
+    def _visualize_queue(self):
+        """Visualize Queue"""
+        x = 50  # Start from left
+        count = 0
+        
+        # Get all books with queues
+        queued_books = []
+        for book_id, book in self.queue_system.books.items():
+            if book['reservation_queue']:
+                queued_books.append({
+                    'id': book_id,
+                    'title': book['title'],
+                    'queue': list(book['reservation_queue'])
+                })
+        
+        if queued_books:
+            for book in queued_books[:6]:  # Show first 6 queued books
+                # Draw box
+                self.viz_canvas.create_rectangle(x, 120, x+100, 180, fill='lightpink')
+                # Draw text
+                self.viz_canvas.create_text(x+50, 140, text=book['title'][:10])
+                self.viz_canvas.create_text(x+50, 160, text=f"Queue: {len(book['queue'])}")
+                x += 120
+                count += 1
+        else:
+            self.viz_canvas.create_text(300, 150, text="No Books in Queue")
+
+    def _visualize_linked_list(self):
+        """Visualize Linked List"""
+        x = 50  # Start from left
+        current = self.linked_list.head
+        count = 0
+        
+        while current and count < 5:  # Show first 5 items
+            # Draw node
+            self.viz_canvas.create_oval(x-30, 120, x+30, 180, fill='lightyellow')
+            # Draw text
+            self.viz_canvas.create_text(x, 150, text=current.title[:10])
+            
+            # Draw arrow if there's a next node
+            if current.next and count < 4:
+                self.viz_canvas.create_line(x+30, 150, x+90, 150, arrow=tk.LAST)
+            
+            x += 120
+            current = current.next
+            count += 1
+        
+        if not self.linked_list.head:
+            self.viz_canvas.create_text(300, 150, text="Empty Linked List")
 
 
 if __name__ == "__main__":
