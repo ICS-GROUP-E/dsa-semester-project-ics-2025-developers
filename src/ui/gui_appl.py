@@ -9,19 +9,73 @@ from src.database.sqlite import SQLiteService
 from datetime import datetime
 import sqlite3
 
+class ModernStyle:
+    # Color scheme
+    PRIMARY = "#2196F3"  # Blue
+    SECONDARY = "#FFC107"  # Amber
+    SUCCESS = "#4CAF50"  # Green
+    DANGER = "#F44336"  # Red
+    WARNING = "#FF9800"  # Orange
+    INFO = "#00BCD4"  # Cyan
+    LIGHT = "#F5F5F5"  # Light Gray
+    DARK = "#212121"  # Dark Gray
+    
+    # Styles
+    BUTTON_STYLE = {
+        "background": PRIMARY,
+        "foreground": "white",
+        "font": ("Helvetica", 10),
+        "padx": 15,
+        "pady": 5,
+        "relief": "flat",
+        "borderwidth": 0
+    }
+    
+    DANGER_BUTTON = BUTTON_STYLE.copy()
+    DANGER_BUTTON["background"] = DANGER
+    
+    SUCCESS_BUTTON = BUTTON_STYLE.copy()
+    SUCCESS_BUTTON["background"] = SUCCESS
+    
+    WARNING_BUTTON = BUTTON_STYLE.copy()
+    WARNING_BUTTON["background"] = WARNING
+    
+    ENTRY_STYLE = {
+        "font": ("Helvetica", 10),
+        "relief": "solid",
+        "borderwidth": 1
+    }
+    
+    HEADING_STYLE = {
+        "font": ("Helvetica", 12, "bold"),
+        "foreground": DARK
+    }
 
 class IntegratedLibraryGUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("DSA Library Management System - Integrated")
+        self.title("📚 Library Management System")
         self.geometry("1400x900")
-
+        self.configure(bg=ModernStyle.LIGHT)
+        
+        # Configure styles
+        self.style = ttk.Style()
+        self.style.configure("Modern.TButton",
+                           font=("Helvetica", 10),
+                           padding=5)
+        self.style.configure("Modern.TEntry",
+                           padding=5)
+        self.style.configure("Modern.TLabel",
+                           font=("Helvetica", 10))
+        self.style.configure("Title.TLabel",
+                           font=("Helvetica", 14, "bold"))
+        
         # Initialize all data structures
         self.bst = BinarySearchTree(log_fn=self._log)
         self.book_dict = BookDictionary()
         self.linked_list = BookLinkedList()
         self.queue_system = LibrarySystem()
-        self.activity_stack = ActivityStack()  # Initialize the stack
+        self.activity_stack = ActivityStack()
         self.storage = self._init_database()
 
         # Create main interface
@@ -55,9 +109,18 @@ class IntegratedLibraryGUI(tk.Tk):
 
     def create_main_interface(self):
         """Create the main tabbed interface"""
-        # Create notebook
+        # Create header
+        header = ttk.Frame(self)
+        header.pack(fill=tk.X, padx=20, pady=10)
+        
+        title = ttk.Label(header, 
+                         text="Library Management System",
+                         style="Title.TLabel")
+        title.pack(side=tk.LEFT)
+        
+        # Create notebook with modern styling
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         # Create tabs
         self.create_book_management_tab()
@@ -68,51 +131,81 @@ class IntegratedLibraryGUI(tk.Tk):
     def create_book_management_tab(self):
         """Main book management operations"""
         frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="📚 Book Management")
+        self.notebook.add(frame, text="📚 Books")
 
-        # Input section
-        input_frame = ttk.LabelFrame(frame, text="Book Information", padding=10)
-        input_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Input section with modern styling
+        input_frame = ttk.LabelFrame(frame, text="Add/Edit Book", padding=15)
+        input_frame.pack(fill=tk.X, padx=20, pady=10)
 
-        # Create input fields
-        ttk.Label(input_frame, text="ISBN:").grid(row=0, column=0, sticky=tk.W, padx=5)
+        # Grid layout for inputs
+        grid = ttk.Frame(input_frame)
+        grid.pack(fill=tk.X, pady=10)
+
+        # ISBN input
+        ttk.Label(grid, text="ISBN:", style="Modern.TLabel").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.isbn_var = tk.StringVar()
-        self.isbn_entry = ttk.Entry(input_frame, textvariable=self.isbn_var, width=20)
-        self.isbn_entry.grid(row=0, column=1, padx=5, pady=2)
+        isbn_entry = ttk.Entry(grid, textvariable=self.isbn_var, width=30, style="Modern.TEntry")
+        isbn_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        ttk.Label(input_frame, text="Title:").grid(row=0, column=2, sticky=tk.W, padx=5)
+        # Title input
+        ttk.Label(grid, text="Title:", style="Modern.TLabel").grid(row=0, column=2, padx=5, pady=5, sticky=tk.W)
         self.title_var = tk.StringVar()
-        self.title_entry = ttk.Entry(input_frame, textvariable=self.title_var, width=30)
-        self.title_entry.grid(row=0, column=3, padx=5, pady=2)
+        title_entry = ttk.Entry(grid, textvariable=self.title_var, width=40, style="Modern.TEntry")
+        title_entry.grid(row=0, column=3, padx=5, pady=5)
 
-        ttk.Label(input_frame, text="Author:").grid(row=1, column=0, sticky=tk.W, padx=5)
+        # Author input
+        ttk.Label(grid, text="Author:", style="Modern.TLabel").grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
         self.author_var = tk.StringVar()
-        self.author_entry = ttk.Entry(input_frame, textvariable=self.author_var, width=30)
-        self.author_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=2)
+        author_entry = ttk.Entry(grid, textvariable=self.author_var, width=40, style="Modern.TEntry")
+        author_entry.grid(row=1, column=1, columnspan=2, padx=5, pady=5)
 
-        # Buttons
+        # Button frame with modern styling
         button_frame = ttk.Frame(input_frame)
-        button_frame.grid(row=2, column=0, columnspan=4, pady=10)
+        button_frame.pack(pady=10)
 
-        ttk.Button(button_frame, text="Add Book", command=self.add_book).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Update Book", command=self.update_book).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Delete Book", command=self.delete_book).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="Clear Fields", command=self.clear_fields).pack(side=tk.LEFT, padx=5)
+        # Modern styled buttons
+        add_btn = tk.Button(button_frame, text="Add Book", **ModernStyle.SUCCESS_BUTTON)
+        add_btn.pack(side=tk.LEFT, padx=5)
+        add_btn.config(command=self.add_book)
 
-        # Books display
-        display_frame = ttk.LabelFrame(frame, text="Book Collection", padding=10)
-        display_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        update_btn = tk.Button(button_frame, text="Update Book", **ModernStyle.WARNING_BUTTON)
+        update_btn.pack(side=tk.LEFT, padx=5)
+        update_btn.config(command=self.update_book)
+
+        delete_btn = tk.Button(button_frame, text="Delete Book", **ModernStyle.DANGER_BUTTON)
+        delete_btn.pack(side=tk.LEFT, padx=5)
+        delete_btn.config(command=self.delete_book)
+
+        clear_btn = tk.Button(button_frame, text="Clear Fields", **ModernStyle.BUTTON_STYLE)
+        clear_btn.pack(side=tk.LEFT, padx=5)
+        clear_btn.config(command=self.clear_fields)
+
+        # Books display with modern styling
+        display_frame = ttk.LabelFrame(frame, text="Book Collection", padding=15)
+        display_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        # Configure modern Treeview
+        style = ttk.Style()
+        style.configure("Modern.Treeview",
+                       background=ModernStyle.LIGHT,
+                       foreground=ModernStyle.DARK,
+                       rowheight=25,
+                       fieldbackground=ModernStyle.LIGHT)
+        style.configure("Modern.Treeview.Heading",
+                       font=('Helvetica', 10, 'bold'))
 
         # Treeview for books
         columns = ("ISBN", "Title", "Author", "Status")
-        self.books_tree = ttk.Treeview(display_frame, columns=columns, show="headings", height=15)
+        self.books_tree = ttk.Treeview(display_frame, columns=columns, show="headings",
+                                      height=15, style="Modern.Treeview")
 
         for col in columns:
             self.books_tree.heading(col, text=col)
             self.books_tree.column(col, width=150)
 
-        # Scrollbar
-        scrollbar = ttk.Scrollbar(display_frame, orient=tk.VERTICAL, command=self.books_tree.yview)
+        # Modern scrollbar
+        scrollbar = ttk.Scrollbar(display_frame, orient=tk.VERTICAL,
+                                command=self.books_tree.yview)
         self.books_tree.configure(yscrollcommand=scrollbar.set)
 
         self.books_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -121,118 +214,244 @@ class IntegratedLibraryGUI(tk.Tk):
         # Bind selection event
         self.books_tree.bind('<<TreeviewSelect>>', self.on_book_select)
 
-        # Status bar
+        # Modern status bar
         self.status_var = tk.StringVar()
         self.status_var.set("Ready")
-        status_bar = ttk.Label(frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
-        status_bar.pack(fill=tk.X, padx=10, pady=5)
+        status_bar = ttk.Label(frame, textvariable=self.status_var,
+                             style="Modern.TLabel", padding=5)
+        status_bar.pack(fill=tk.X, padx=20, pady=5)
 
     def create_search_operations_tab(self):
         """Search operations using different data structures"""
         frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="🔍 Search Operations")
+        self.notebook.add(frame, text="🔍 Search")
 
-        # Search controls
-        search_frame = ttk.LabelFrame(frame, text="Search Options", padding=10)
-        search_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Search controls with modern styling
+        search_frame = ttk.LabelFrame(frame, text="Search Options", padding=15)
+        search_frame.pack(fill=tk.X, padx=20, pady=10)
 
-        ttk.Label(search_frame, text="Search Term:").grid(row=0, column=0, sticky=tk.W, padx=5)
+        # Search input grid
+        grid = ttk.Frame(search_frame)
+        grid.pack(fill=tk.X, pady=10)
+
+        ttk.Label(grid, text="Search Term:", style="Modern.TLabel").grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
         self.search_var = tk.StringVar()
-        self.search_entry = ttk.Entry(search_frame, textvariable=self.search_var, width=30)
-        self.search_entry.grid(row=0, column=1, padx=5)
+        search_entry = ttk.Entry(grid, textvariable=self.search_var, width=40, style="Modern.TEntry")
+        search_entry.grid(row=0, column=1, padx=5, pady=5)
 
-        ttk.Label(search_frame, text="Search By:").grid(row=0, column=2, sticky=tk.W, padx=5)
-        self.search_type = ttk.Combobox(search_frame, values=["ISBN", "Title", "Author"], width=15)
-        self.search_type.grid(row=0, column=3, padx=5)
+        ttk.Label(grid, text="Search By:", style="Modern.TLabel").grid(row=0, column=2, padx=5, pady=5, sticky=tk.W)
+        self.search_type = ttk.Combobox(grid, values=["ISBN", "Title", "Author"], width=15, style="Modern.TCombobox")
+        self.search_type.grid(row=0, column=3, padx=5, pady=5)
         self.search_type.set("Title")
 
-        # Search buttons
-        search_buttons = ttk.Frame(search_frame)
-        search_buttons.grid(row=1, column=0, columnspan=4, pady=10)
+        # Search buttons with modern styling
+        button_frame = ttk.Frame(search_frame)
+        button_frame.pack(pady=10)
 
-        ttk.Button(search_buttons, text="BST Search", command=self.bst_search).pack(side=tk.LEFT, padx=5)
-        ttk.Button(search_buttons, text="Dictionary Search", command=self.dict_search).pack(side=tk.LEFT, padx=5)
-        ttk.Button(search_buttons, text="Linked List Search", command=self.linked_search).pack(side=tk.LEFT, padx=5)
+        bst_btn = tk.Button(button_frame, text="BST Search", **ModernStyle.BUTTON_STYLE)
+        bst_btn.pack(side=tk.LEFT, padx=5)
+        bst_btn.config(command=self.bst_search)
 
-        # Search results
-        results_frame = ttk.LabelFrame(frame, text="Search Results", padding=10)
-        results_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        dict_btn = tk.Button(button_frame, text="Dictionary Search", **ModernStyle.BUTTON_STYLE)
+        dict_btn.pack(side=tk.LEFT, padx=5)
+        dict_btn.config(command=self.dict_search)
 
-        self.search_results = scrolledtext.ScrolledText(results_frame, height=20, wrap=tk.WORD)
+        linked_btn = tk.Button(button_frame, text="Linked List Search", **ModernStyle.BUTTON_STYLE)
+        linked_btn.pack(side=tk.LEFT, padx=5)
+        linked_btn.config(command=self.linked_search)
+
+        # Search results with modern styling
+        results_frame = ttk.LabelFrame(frame, text="Search Results", padding=15)
+        results_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        self.search_results = scrolledtext.ScrolledText(
+            results_frame, 
+            height=20, 
+            wrap=tk.WORD,
+            font=("Helvetica", 10),
+            bg=ModernStyle.LIGHT,
+            relief="solid",
+            borderwidth=1
+        )
         self.search_results.pack(fill=tk.BOTH, expand=True)
 
     def create_checkout_system_tab(self):
         """Checkout system using queue"""
         frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="📋 Checkout System")
+        self.notebook.add(frame, text="📋 Checkout")
 
-        # Checkout controls
-        checkout_frame = ttk.LabelFrame(frame, text="Checkout/Return", padding=10)
-        checkout_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Checkout controls with modern styling
+        checkout_frame = ttk.LabelFrame(frame, text="Checkout/Return Books", padding=15)
+        checkout_frame.pack(fill=tk.X, padx=20, pady=10)
 
-        ttk.Label(checkout_frame, text="Book ID:").grid(row=0, column=0, sticky=tk.W, padx=5)
+        # Input grid
+        grid = ttk.Frame(checkout_frame)
+        grid.pack(fill=tk.X, pady=10)
+
+        # ISBN input with tooltip
+        isbn_frame = ttk.Frame(grid)
+        isbn_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(isbn_frame, text="ISBN:", style="Modern.TLabel").pack(side=tk.LEFT)
+        isbn_tooltip = ttk.Label(isbn_frame, text="ℹ️", cursor="question_arrow")
+        isbn_tooltip.pack(side=tk.LEFT, padx=2)
+        self.create_tooltip(isbn_tooltip, "Enter the 13-digit ISBN number of the book")
+        
         self.checkout_book_var = tk.StringVar()
-        self.checkout_book_entry = ttk.Entry(checkout_frame, textvariable=self.checkout_book_var, width=20)
-        self.checkout_book_entry.grid(row=0, column=1, padx=5)
+        checkout_entry = ttk.Entry(grid, textvariable=self.checkout_book_var, width=30, style="Modern.TEntry")
+        checkout_entry.grid(row=0, column=2, padx=5, pady=5)
 
-        ttk.Label(checkout_frame, text="User ID:").grid(row=0, column=2, sticky=tk.W, padx=5)
+        # Username input with tooltip
+        username_frame = ttk.Frame(grid)
+        username_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky=tk.W)
+        ttk.Label(username_frame, text="Username:", style="Modern.TLabel").pack(side=tk.LEFT)
+        username_tooltip = ttk.Label(username_frame, text="ℹ️", cursor="question_arrow")
+        username_tooltip.pack(side=tk.LEFT, padx=2)
+        self.create_tooltip(username_tooltip, "Enter the borrower's username (e.g., 'john_smith')")
+
         self.user_var = tk.StringVar()
-        self.user_entry = ttk.Entry(checkout_frame, textvariable=self.user_var, width=20)
-        self.user_entry.grid(row=0, column=3, padx=5)
+        user_entry = ttk.Entry(grid, textvariable=self.user_var, width=30, style="Modern.TEntry")
+        user_entry.grid(row=1, column=2, padx=5, pady=5)
 
-        # Checkout buttons
-        checkout_buttons = ttk.Frame(checkout_frame)
-        checkout_buttons.grid(row=1, column=0, columnspan=4, pady=10)
+        # Example label
+        ttk.Label(grid, text="Example: john_smith", foreground="gray", style="Modern.TLabel").grid(
+            row=2, column=2, padx=5, sticky=tk.W)
 
-        ttk.Button(checkout_buttons, text="Checkout Book", command=self.checkout_book).pack(side=tk.LEFT, padx=5)
-        ttk.Button(checkout_buttons, text="Return Book", command=self.return_book).pack(side=tk.LEFT, padx=5)
-        ttk.Button(checkout_buttons, text="View Queue Status", command=self.view_queue_status).pack(side=tk.LEFT,
-                                                                                                    padx=5)
+        # Checkout buttons with modern styling
+        button_frame = ttk.Frame(checkout_frame)
+        button_frame.pack(pady=10)
 
-        # Queue status display
-        queue_frame = ttk.LabelFrame(frame, text="Queue Status", padding=10)
-        queue_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        checkout_btn = tk.Button(button_frame, text="Checkout Book", **ModernStyle.SUCCESS_BUTTON)
+        checkout_btn.pack(side=tk.LEFT, padx=5)
+        checkout_btn.config(command=self.checkout_book)
 
-        self.queue_display = scrolledtext.ScrolledText(queue_frame, height=20, wrap=tk.WORD)
+        return_btn = tk.Button(button_frame, text="Return Book", **ModernStyle.WARNING_BUTTON)
+        return_btn.pack(side=tk.LEFT, padx=5)
+        return_btn.config(command=self.return_book)
+
+        # Queue display
+        queue_frame = ttk.LabelFrame(frame, text="Current Checkouts and Waitlist", padding=15)
+        queue_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+
+        self.queue_display = scrolledtext.ScrolledText(
+            queue_frame,
+            height=15,
+            wrap=tk.WORD,
+            font=("Helvetica", 10),
+            bg=ModernStyle.LIGHT
+        )
         self.queue_display.pack(fill=tk.BOTH, expand=True)
 
     def create_data_structures_tab(self):
         """Data structures visualization and logs"""
         frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="🔧 Data Structures")
+        self.notebook.add(frame, text="🔧 Visualizer")
 
-        # Create visualization canvas
-        canvas_frame = ttk.LabelFrame(frame, text="Data Structure Visualization", padding=10)
-        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Create visualization canvas with modern styling
+        canvas_frame = ttk.LabelFrame(frame, text="Data Structure Visualization", padding=15)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         
-        self.viz_canvas = tk.Canvas(canvas_frame, width=600, height=300, bg='white')
-        self.viz_canvas.pack(fill=tk.BOTH, expand=True)
+        self.viz_canvas = tk.Canvas(
+            canvas_frame, 
+            width=600, 
+            height=300, 
+            bg=ModernStyle.LIGHT,
+            relief="solid",
+            borderwidth=1
+        )
+        self.viz_canvas.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Control panel for visualization
+        # Control panel for visualization with modern styling
         control_frame = ttk.Frame(canvas_frame)
-        control_frame.pack(fill=tk.X, pady=5)
+        control_frame.pack(fill=tk.X, pady=10)
         
-        ttk.Label(control_frame, text="Visualize:").pack(side=tk.LEFT, padx=5)
-        self.viz_type = ttk.Combobox(control_frame, values=["BST", "Stack", "Queue", "Linked List"])
+        ttk.Label(control_frame, text="Visualize:", style="Modern.TLabel").pack(side=tk.LEFT, padx=5)
+        self.viz_type = ttk.Combobox(
+            control_frame, 
+            values=["BST", "Stack", "Queue", "Linked List"],
+            width=15,
+            style="Modern.TCombobox"
+        )
         self.viz_type.pack(side=tk.LEFT, padx=5)
         self.viz_type.set("BST")
         self.viz_type.bind('<<ComboboxSelected>>', self.update_visualization)
         
-        ttk.Button(control_frame, text="Refresh", command=self.update_visualization).pack(side=tk.LEFT, padx=5)
+        refresh_btn = tk.Button(
+            control_frame, 
+            text="Refresh View", 
+            **ModernStyle.BUTTON_STYLE
+        )
+        refresh_btn.pack(side=tk.LEFT, padx=5)
+        refresh_btn.config(command=self.update_visualization)
         
-        # Statistics frame
-        stats_frame = ttk.LabelFrame(frame, text="Collection Statistics", padding=10)
-        stats_frame.pack(fill=tk.X, padx=10, pady=5)
+        # Statistics frame with modern styling
+        stats_frame = ttk.LabelFrame(frame, text="Collection Statistics", padding=15)
+        stats_frame.pack(fill=tk.X, padx=20, pady=10)
         
-        self.stats_text = tk.Text(stats_frame, height=8, wrap=tk.WORD)
-        self.stats_text.pack(fill=tk.BOTH, expand=True)
+        self.stats_text = tk.Text(
+            stats_frame, 
+            height=8, 
+            wrap=tk.WORD,
+            font=("Helvetica", 10),
+            bg=ModernStyle.LIGHT,
+            relief="solid",
+            borderwidth=1
+        )
+        self.stats_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Activity log
-        log_frame = ttk.LabelFrame(frame, text="Activity Log", padding=10)
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        # Activity log with modern styling
+        log_frame = ttk.LabelFrame(frame, text="Activity Log", padding=15)
+        log_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
         
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=15, wrap=tk.WORD)
-        self.log_text.pack(fill=tk.BOTH, expand=True)
+        self.log_text = scrolledtext.ScrolledText(
+            log_frame, 
+            height=15, 
+            wrap=tk.WORD,
+            font=("Helvetica", 10),
+            bg=ModernStyle.LIGHT,
+            relief="solid",
+            borderwidth=1
+        )
+        self.log_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        # Log controls with modern styling
+        log_controls = ttk.Frame(log_frame)
+        log_controls.pack(fill=tk.X, pady=5)
+        
+        clear_btn = tk.Button(
+            log_controls, 
+            text="Clear Log", 
+            **ModernStyle.DANGER_BUTTON
+        )
+        clear_btn.pack(side=tk.LEFT, padx=5)
+        clear_btn.config(command=self.clear_log)
+        
+        save_btn = tk.Button(
+            log_controls, 
+            text="Save Log", 
+            **ModernStyle.SUCCESS_BUTTON
+        )
+        save_btn.pack(side=tk.LEFT, padx=5)
+        save_btn.config(command=self.save_log)
+
+    def create_tooltip(self, widget, text):
+        """Create a tooltip for a widget"""
+        def show_tooltip(event):
+            tooltip = tk.Toplevel()
+            tooltip.wm_overrideredirect(True)
+            tooltip.wm_geometry(f"+{event.x_root+10}+{event.y_root+10}")
+            
+            label = ttk.Label(tooltip, text=text, background=ModernStyle.LIGHT,
+                            relief="solid", borderwidth=1)
+            label.pack()
+            
+            def hide_tooltip():
+                tooltip.destroy()
+            
+            widget.tooltip = tooltip
+            widget.bind("<Leave>", lambda e: hide_tooltip())
+            tooltip.bind("<Leave>", lambda e: hide_tooltip())
+        
+        widget.bind("<Enter>", show_tooltip)
 
     # Event handlers
     def on_book_select(self, event):
