@@ -552,18 +552,43 @@ class IntegratedLibraryGUI(tk.Tk):
         if messagebox.askyesno("Confirm", "Are you sure you want to delete this book?"):
             item = self.books_tree.item(selection[0])
             isbn = item['values'][0]
+            title = item['values'][1]  # Store title for logging
             
             try:
+                # Start transaction
+                cursor = self.storage.conn.cursor()
+                
+                # First verify the book exists
+                cursor.execute("SELECT * FROM books WHERE isbn = ?", (isbn,))
+                if not cursor.fetchone():
+                    raise Exception("Book not found in database")
+                
                 # Delete from database
-                self.storage.conn.execute("DELETE FROM books WHERE isbn = ?", (isbn,))
-                self.storage.conn.commit()
+                cursor.execute("DELETE FROM books WHERE isbn = ?", (isbn,))
                 
                 # Delete from data structures
-                self.bst.delete(isbn)
-                self.book_dict.delete_book(isbn)
-                self.linked_list.delete_book(isbn)
+                try:
+                    self.bst.delete(isbn)
+                except Exception as e:
+                    self._log(f"Warning: BST deletion failed for ISBN {isbn}: {str(e)}")
+                    
+                try:
+                    if not self.book_dict.delete_book(isbn):
+                        self._log(f"Warning: Dictionary deletion failed for ISBN {isbn}")
+                except Exception as e:
+                    self._log(f"Warning: Dictionary deletion error for ISBN {isbn}: {str(e)}")
+                    
+                try:
+                    result = self.linked_list.delete_book(isbn)
+                    if result == "Book not found":
+                        self._log(f"Warning: Linked list deletion failed for ISBN {isbn}")
+                except Exception as e:
+                    self._log(f"Warning: Linked list deletion error for ISBN {isbn}: {str(e)}")
                 
-                self._log(f"Deleted book: {item['values'][1]} (ISBN: {isbn})")
+                # Commit database changes
+                self.storage.conn.commit()
+                
+                self._log(f"Deleted book: {title} (ISBN: {isbn})")
                 self.refresh_books_display()
                 self.clear_fields()
                 
@@ -571,7 +596,13 @@ class IntegratedLibraryGUI(tk.Tk):
                 self.update_visualization()
                 
             except Exception as e:
-                messagebox.showerror("Error", str(e))
+                # Rollback on error
+                self.storage.conn.rollback()
+                error_msg = str(e)
+                self._log(f"Error deleting book: {error_msg}")
+                messagebox.showerror("Error", f"Failed to delete book: {error_msg}")
+                # Try to recover data structure consistency
+                self._reload_data_structures()
 
     def bst_search(self):
         """Search using BST"""
