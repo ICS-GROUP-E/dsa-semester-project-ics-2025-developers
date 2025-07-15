@@ -207,6 +207,67 @@ class BookDictionary:
 - Collision handling (Python dict)
 - Memory usage vs access speed
 
+## Graph (Book Recommendations)
+
+### Purpose
+The graph structure is used to create and manage relationships between similar books, enabling a recommendation system based on book similarities.
+
+### Implementation Details
+```python
+class Graphs:
+    def __init__(self):
+        self.graph = {}  # Adjacency list representation
+```
+
+### Operations and Complexity
+
+1. **Add Book Node**
+   - Time: O(1)
+   - Space: O(1)
+   - Implementation: Add new vertex to adjacency list
+   ```python
+   if title not in self.graph:
+       self.graph[title] = []
+   ```
+
+2. **Connect Similar Books**
+   - Time: O(1)
+   - Space: O(1)
+   - Implementation: Add bidirectional edges
+   ```python
+   if book1 in self.graph and book2 in self.graph:
+       self.graph[book1].append(book2)
+       self.graph[book2].append(book1)
+   ```
+
+3. **Get Recommendations**
+   - Time: O(V + E) where V is vertices and E is edges
+   - Space: O(V) for visited set and queue
+   - Implementation: BFS traversal for nearest neighbors
+   ```python
+   visited = set()
+   queue = [start_book]
+   recommendations = []
+   while queue and len(recommendations) < 5:
+       process_next_book()
+   ```
+
+4. **Remove Book**
+   - Time: O(V) worst case to remove all edges
+   - Space: O(1)
+   - Implementation: Remove vertex and all associated edges
+
+### Best Practices
+- Maintain bidirectional edges for consistency
+- Limit recommendations to top 5 for relevance
+- Use BFS to prioritize directly connected books
+- Clean up edges when books are deleted
+
+### Performance Considerations
+- Adjacency list for sparse connections
+- O(1) edge lookups and modifications
+- Memory scales with number of similar book pairs
+
 ## Integration Points
 
 ### Data Structure Interactions
@@ -224,6 +285,11 @@ class BookDictionary:
    - History tracking
    - Chronological operation record
    - Audit capability
+
+4. Graph + Dictionary
+   - Graph for recommendations
+   - Dictionary for quick title lookups
+   - Complementary book discovery
 
 ### Consistency Maintenance
 - Synchronized updates across structures
@@ -243,16 +309,21 @@ class BookDictionary:
    - Direct access benefit
    - Memory overhead acceptance
 
+3. Graph
+   - Sparse adjacency list
+   - Limited recommendations
+   - Edge cleanup on deletion
+
 ### Time Optimization
 1. BST
    - No explicit balancing
    - Acceptable for library scale
    - ISBN distribution naturally balanced
 
-2. Queue
-   - O(1) operations priority
-   - No unnecessary traversals
-   - Direct state tracking
+2. Graph Traversal
+   - BFS for nearest neighbors
+   - Early termination
+   - Cached recommendations
 
 ## Testing Considerations
 

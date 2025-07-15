@@ -12,6 +12,7 @@ A Python desktop application implementing multiple data structures to manage a l
 - Activity logging with undo capability
 - Real-time data structure visualization
 - Modern Tkinter GUI interface
+- Book recommendations based on similarity
 
 ##  Data Structures Implementation
 
@@ -63,6 +64,16 @@ Operations:
 - Delete: O(1) average - Hash table delete
 - Search: O(1) average - Hash table lookup
 Space Complexity: O(n) - One entry per book
+```
+
+### 6. Graph
+Used for book recommendations based on similarity.
+```
+Operations:
+- Add Book: O(1) - Add vertex
+- Connect Books: O(1) - Add edge
+- Get Recommendations: O(V + E) - BFS traversal
+Space Complexity: O(V + E) - V vertices and E edges
 ```
 
 ## 🛠️ Setup Instructions
@@ -124,6 +135,13 @@ python main.py
 3. Click "Checkout Book"
 4. If book unavailable, user will be added to waitlist
 
+### Managing Book Recommendations
+1. Select a book from the list
+2. Choose a similar book from the dropdown
+3. Click "Connect Books" to establish similarity
+4. View recommendations for selected book
+5. Up to 5 similar books will be recommended
+
 ### Viewing History
 - Click "Show History" to view book operations
 - Use "Undo Last" to reverse recent actions
@@ -138,6 +156,7 @@ src/
 │   ├── Stacks.py       # Activity logging stack
 │   ├── queue.py        # Checkout queue
 │   ├── linkedList.py   # History tracking
+│   ├── graph.py        # Book recommendations
 │   └── BookDictionary.py # Quick lookups
 ├── database/           # Database operations
 │   └── sqlite.py      # SQLite interface

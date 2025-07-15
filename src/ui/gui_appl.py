@@ -1,13 +1,22 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
-from src.data_struct.Bsearch import BinarySearchTree
-from src.data_struct.BookDictionary import BookDictionary
-from src.data_struct.linkedList import BookLinkedList
-from src.data_struct.queue import LibrarySystem
-from src.data_struct.Stacks import ActivityStack
-from src.database.sqlite import SQLiteService
-from datetime import datetime
+import sys
+import os
+import subprocess
+import importlib
 import sqlite3
+from datetime import datetime
+
+# Add the project root to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from data_struct.Bsearch import BinarySearchTree
+from data_struct.BookDictionary import BookDictionary
+from data_struct.linkedList import BookLinkedList
+from data_struct.queue import LibrarySystem
+from data_struct.Stacks import ActivityStack
+from data_struct.graph import Graphs
+from database.sqlite import SQLiteService
 
 class ModernStyle:
     # Color scheme
@@ -51,6 +60,46 @@ class ModernStyle:
         "foreground": DARK
     }
 
+    LIGHT = "#f5f5f5"
+    DARK = "#333333"
+    PRIMARY = "#2196f3"
+    SUCCESS = "#4caf50"
+    WARNING = "#ff9800"
+    DANGER = "#f44336"
+    INFO = "#00bcd4"
+
+    BUTTON_STYLE = {
+        "bg": LIGHT,
+        "fg": DARK,
+        "font": ("Helvetica", 10),
+        "relief": tk.RAISED,
+        "cursor": "hand2"
+    }
+
+    SUCCESS_BUTTON = {
+        **BUTTON_STYLE,
+        "bg": SUCCESS,
+        "fg": LIGHT
+    }
+
+    WARNING_BUTTON = {
+        **BUTTON_STYLE,
+        "bg": WARNING,
+        "fg": LIGHT
+    }
+
+    DANGER_BUTTON = {
+        **BUTTON_STYLE,
+        "bg": DANGER,
+        "fg": LIGHT
+    }
+
+    INFO_BUTTON = {
+        **BUTTON_STYLE,
+        "bg": INFO,
+        "fg": LIGHT
+    }
+
 class IntegratedLibraryGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -76,6 +125,7 @@ class IntegratedLibraryGUI(tk.Tk):
         self.linked_list = BookLinkedList()
         self.queue_system = LibrarySystem()
         self.activity_stack = ActivityStack()
+        self.book_graph = Graphs()  # Initialize graph
         self.storage = self._init_database()
 
         # Create main interface
@@ -212,7 +262,7 @@ class IntegratedLibraryGUI(tk.Tk):
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Bind selection event
-        self.books_tree.bind('<<TreeviewSelect>>', self.on_book_select)
+        self.books_tree.bind('<<TreeviewSelect>>', self.books_tree_select)
 
         # Modern status bar
         self.status_var = tk.StringVar()
@@ -220,6 +270,30 @@ class IntegratedLibraryGUI(tk.Tk):
         status_bar = ttk.Label(frame, textvariable=self.status_var,
                              style="Modern.TLabel", padding=5)
         status_bar.pack(fill=tk.X, padx=20, pady=5)
+
+        # Similar Books Section
+        similar_frame = ttk.LabelFrame(input_frame, text="Similar Books", padding=10)
+        similar_frame.pack(fill=tk.X, pady=10)
+
+        # Dropdown for selecting similar books
+        ttk.Label(similar_frame, text="Connect with:").pack(side=tk.LEFT, padx=5)
+        self.similar_var = tk.StringVar()
+        self.similar_combo = ttk.Combobox(similar_frame, textvariable=self.similar_var, width=30)
+        self.similar_combo.pack(side=tk.LEFT, padx=5)
+        # Bind selection event
+        self.similar_combo.bind('<<ComboboxSelected>>', self.on_book_selected)
+        
+        connect_btn = tk.Button(similar_frame, text="Connect Books", 
+                              command=self.connect_similar_books,
+                              **ModernStyle.INFO_BUTTON)
+        connect_btn.pack(side=tk.LEFT, padx=5)
+
+        # Recommendations Section
+        recommendations_frame = ttk.LabelFrame(input_frame, text="Book Recommendations", padding=10)
+        recommendations_frame.pack(fill=tk.X, pady=10)
+        
+        self.recommendations_text = tk.Text(recommendations_frame, height=5, width=40)
+        self.recommendations_text.pack(fill=tk.X, pady=5)
 
     def create_search_operations_tab(self):
         """Search operations using different data structures"""
@@ -496,9 +570,11 @@ class IntegratedLibraryGUI(tk.Tk):
             self.bst.insert(isbn, {"title": title, "author": author})
             self.book_dict.add_book(isbn, title, author)
             self.linked_list.add_book(title, author, isbn)
+            self.book_graph.add_book_node(title)  # Add to graph
             
             self._log(f"Added book: {title} (ISBN: {isbn})")
             self.refresh_books_display()
+            self.refresh_similar_books_combo()  # Update similar books dropdown
             self.clear_fields()
             
             # Update visualization if BST is selected
@@ -552,7 +628,7 @@ class IntegratedLibraryGUI(tk.Tk):
         if messagebox.askyesno("Confirm", "Are you sure you want to delete this book?"):
             item = self.books_tree.item(selection[0])
             isbn = item['values'][0]
-            title = item['values'][1]  # Store title for logging
+            title = item['values'][1]
             
             try:
                 # Start transaction
@@ -584,12 +660,19 @@ class IntegratedLibraryGUI(tk.Tk):
                         self._log(f"Warning: Linked list deletion failed for ISBN {isbn}")
                 except Exception as e:
                     self._log(f"Warning: Linked list deletion error for ISBN {isbn}: {str(e)}")
+
+                # Remove from graph
+                try:
+                    self.book_graph.remove_book(title)
+                except Exception as e:
+                    self._log(f"Warning: Graph deletion error for title {title}: {str(e)}")
                 
                 # Commit database changes
                 self.storage.conn.commit()
                 
                 self._log(f"Deleted book: {title} (ISBN: {isbn})")
                 self.refresh_books_display()
+                self.refresh_similar_books_combo()  # Update similar books dropdown
                 self.clear_fields()
                 
                 # Update visualization based on current view
@@ -837,8 +920,10 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
                 self.book_dict.add_book(isbn, title, author)
                 self.linked_list.add_book(title, author, isbn)
                 self.queue_system.add_book(str(book_id), title, 1)
+                self.book_graph.add_book_node(title)  # Add to graph
 
             self.refresh_books_display()
+            self.refresh_similar_books_combo()  # Update similar books dropdown
             self.refresh_statistics()
             self._log(f"Loaded {len(books)} books from database")
 
@@ -852,6 +937,7 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         self.book_dict = BookDictionary()
         self.linked_list = BookLinkedList()
         self.queue_system = LibrarySystem()
+        self.book_graph = Graphs()  # Reset graph
 
         # Reload from database
         self._load_existing_data()
@@ -966,6 +1052,69 @@ Last Updated: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
         
         if not self.linked_list.head:
             self.viz_canvas.create_text(300, 150, text="Empty Linked List")
+
+    def connect_similar_books(self):
+        """Connect two books as similar in the graph"""
+        selected = self.books_tree.selection()
+        if not selected:
+            messagebox.showwarning("Warning", "Please select a book first!")
+            return
+
+        similar_book = self.similar_var.get()
+        if not similar_book:
+            messagebox.showwarning("Warning", "Please select a similar book!")
+            return
+
+        item = self.books_tree.item(selected[0])
+        current_book = item['values'][1]  # Get title of selected book
+
+        if current_book == similar_book:
+            messagebox.showwarning("Warning", "Cannot connect a book to itself!")
+            return
+
+        self.book_graph.add_edge(current_book, similar_book)
+        self._log(f"Connected similar books: {current_book} ↔ {similar_book}")
+        self.show_recommendations(current_book)
+
+    def on_book_selected(self, event=None):
+        """Handle book selection from dropdown"""
+        selected_book = self.similar_var.get()
+        if selected_book:
+            self.show_recommendations(selected_book)
+
+    def show_recommendations(self, title):
+        """Show book recommendations in the text widget"""
+        recommendations = self.book_graph.get_recommendations(title)
+        self.recommendations_text.delete(1.0, tk.END)
+        
+        if recommendations:
+            self.recommendations_text.insert(tk.END, f"Recommended Books for '{title}':\n")
+            self.recommendations_text.insert(tk.END, "=" * 40 + "\n")
+            for i, book in enumerate(recommendations, 1):
+                self.recommendations_text.insert(tk.END, f"{i}. {book}\n")
+        else:
+            self.recommendations_text.insert(tk.END, f"No recommendations available for '{title}'.\n")
+            self.recommendations_text.insert(tk.END, "Connect this book with similar books to get recommendations.")
+
+    def refresh_similar_books_combo(self):
+        """Update the similar books dropdown"""
+        all_books = self.book_graph.get_all_books()
+        self.similar_combo['values'] = all_books
+        
+        # If there's a currently selected book in the tree, show its recommendations
+        selection = self.books_tree.selection()
+        if selection:
+            item = self.books_tree.item(selection[0])
+            title = item['values'][1]  # Get title
+            self.show_recommendations(title)
+
+    def books_tree_select(self, event=None):
+        """Handle book selection in the main tree view"""
+        selection = self.books_tree.selection()
+        if selection:
+            item = self.books_tree.item(selection[0])
+            title = item['values'][1]  # Get title
+            self.show_recommendations(title)
 
 
 if __name__ == "__main__":
