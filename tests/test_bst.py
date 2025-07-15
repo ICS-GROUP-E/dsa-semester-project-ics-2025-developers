@@ -59,5 +59,31 @@ class TestBinarySearchTree(unittest.TestCase):
         actual_keys = [key for key, _ in inorder_result]
         self.assertEqual(actual_keys, expected_keys)
 
+    def test_preorder_traversal(self):
+        # Insert test data
+        for key, data in self.test_data:
+            self.bst.insert(key, data)
+            
+        # Test preorder traversal
+        # For the given data, preorder should visit root first (5),
+        # then left subtree (3,2,4), then right subtree (7,6,8)
+        preorder_result = list(self.bst.preorder())
+        expected_keys = [5, 3, 2, 4, 7, 6, 8]  # Expected order for our tree
+        actual_keys = [key for key, _ in preorder_result]
+        self.assertEqual(actual_keys, expected_keys)
+
+    def test_postorder_traversal(self):
+        # Insert test data
+        for key, data in self.test_data:
+            self.bst.insert(key, data)
+            
+        # Test postorder traversal
+        # For the given data, postorder should visit left subtree (2,4,3),
+        # then right subtree (6,8,7), then root (5)
+        postorder_result = list(self.bst.postorder())
+        expected_keys = [2, 4, 3, 6, 8, 7, 5]  # Expected order for our tree
+        actual_keys = [key for key, _ in postorder_result]
+        self.assertEqual(actual_keys, expected_keys)
+
 if __name__ == '__main__':
     unittest.main()

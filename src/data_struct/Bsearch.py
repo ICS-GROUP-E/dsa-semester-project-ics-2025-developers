@@ -81,6 +81,11 @@ class BinarySearchTree:
         return node
 
     def inorder(self):
+        """
+        Performs inorder traversal (Left → Root → Right).
+        Yields books in ascending order of their keys.
+        Time Complexity: O(n) where n is number of nodes
+        """
         yield from self._inorder(self.root)
 
     def _inorder(self, node):
@@ -89,3 +94,33 @@ class BinarySearchTree:
         yield from self._inorder(node.left)
         yield (node.key, node.data)
         yield from self._inorder(node.right)
+
+    def preorder(self):
+        """
+        Performs preorder traversal (Root → Left → Right).
+        Useful for creating a copy of the tree or serializing tree structure.
+        Time Complexity: O(n) where n is number of nodes
+        """
+        yield from self._preorder(self.root)
+
+    def _preorder(self, node):
+        if not node:
+            return
+        yield (node.key, node.data)
+        yield from self._preorder(node.left)
+        yield from self._preorder(node.right)
+
+    def postorder(self):
+        """
+        Performs postorder traversal (Left → Right → Root).
+        Useful for deleting the tree or evaluating expressions.
+        Time Complexity: O(n) where n is number of nodes
+        """
+        yield from self._postorder(self.root)
+
+    def _postorder(self, node):
+        if not node:
+            return
+        yield from self._postorder(node.left)
+        yield from self._postorder(node.right)
+        yield (node.key, node.data)
